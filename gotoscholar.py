@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 import re
@@ -7,7 +7,7 @@ import random
 import hashlib
 import urllib2
 import threading
-from bs4 import BeautifulSoup
+# from bs4 import BeautifulSoup
 from htmlentitydefs import name2codepoint
 
 # fake google id (looks like it is a 16 elements hex)
@@ -16,11 +16,11 @@ google_id = hashlib.md5(rand_str).hexdigest()[:16]
 
 GOOGLE_SCHOLAR_URL = "http://scholar.google.com"
 # the cookie looks normally like:
-#        'Cookie' : 'GSP=ID=%s:CF=4' % google_id }
+#		 'Cookie' : 'GSP=ID=%s:CF=4' % google_id }
 # where CF is the format (e.g. bibtex). since we don't know the format yet, we
 # have to append it later
 HEADERS = {'User-Agent': 'Mozilla/5.0',
-           'Cookie': 'GSP=ID=%s' % google_id}
+		   'Cookie': 'GSP=ID=%s' % google_id}
 
 BIBTEX = 4
 ENDNOTE = 3
@@ -44,7 +44,7 @@ def printCitations(url, headers):
 
 def getCitations(query, outformat=BIBTEX):
 	try:
-		url = 'http://scholar.google.com/scholar?q=' + urllib2.quote(query)
+		url = GOOGLE_SCHOLAR_URL + '/scholar?q=' + urllib2.quote(query)
 		headers = HEADERS
 		headers['Cookie'] = headers['Cookie'] + ":CF=%d" % outformat
 		print 'requesting...'
@@ -52,7 +52,7 @@ def getCitations(query, outformat=BIBTEX):
 		links = getLinks(data, outformat)
 		threadList = []
 		for link in links:
-			url = 'http://scholar.google.com' + link
+			url = GOOGLE_SCHOLAR_URL + link
 			t = threading.Thread(target=printCitations, args=(url, headers))
 			threadList.append(t)
 			t.start()
@@ -83,16 +83,23 @@ if __name__ == "__main__":
 	if len(sys.argv) <= 1:
 		print 'no input!'
 	else:
-		proxy = urllib2.ProxyHandler({'http': '127.0.0.1:8087'})
-		opener = urllib2.build_opener(proxy)
-		urllib2.install_opener(opener)
-		query = re.sub(r'\ +','+',sys.argv[1].strip())
+		tmp = sys.argv[1]
+		if tmp == 'p' and len(sys.argv) == 3:
+			print 'Using proxy...'
+			tmp = sys.argv[2]
+			proxy = urllib2.ProxyHandler({'http': '127.0.0.1:8087'})
+			opener = urllib2.build_opener(proxy)
+			urllib2.install_opener(opener)
+		query = re.sub(r'\ +','+',tmp.strip())
 		getCitations(query)
 		query = re.sub(r'[^\w\- ]',' ',query)
-		file = open(query + '.bib','w')
 		citations = '\n'.join(citations)
-		file.write(citations)
-		file.close()
-		print 'Write to file.'
+		if citations != '':
+			file = open(query + '.bib','w')
+			file.write(citations)
+			file.close()
+			print 'Write to file.'
+		else:
+			print 'failed!'
 		
 
